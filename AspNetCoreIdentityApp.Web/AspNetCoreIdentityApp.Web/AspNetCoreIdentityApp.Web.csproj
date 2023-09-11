@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'https' " />
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'http' " />
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="7.0.10" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Areas\" />
+    <None Remove="Areas\Admin\" />
+    <None Remove="Areas\Admin\Controllers\" />
+    <None Remove="Areas\Admin\Data\" />
+    <None Remove="Areas\Admin\Models\" />
+    <None Remove="Areas\Admin\Views\" />
+    <None Remove="Areas\Admin\Views\Home\" />
+    <None Remove="Areas\Admin\Views\Shared\" />
+    <None Remove="Extensions\" />
+    <None Remove="CustomValidations\" />
+    <None Remove="Localizations\" />
+    <None Remove="Views\Member\" />
+    <None Remove="TagHelpers\" />
+    <None Remove="Areas\Admin\Views\Roles\" />
+    <None Remove="ClaimProvider\" />
+    <None Remove="Requirements\" />
+    <None Remove="Views\Order\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Areas\" />
+    <Folder Include="Areas\Admin\" />
+    <Folder Include="Areas\Admin\Controllers\" />
+    <Folder Include="Areas\Admin\Data\" />
+    <Folder Include="Areas\Admin\Models\" />
+    <Folder Include="Areas\Admin\Views\" />
+    <Folder Include="Areas\Admin\Views\Home\" />
+    <Folder Include="Areas\Admin\Views\Shared\" />
+    <Folder Include="Extensions\" />
+    <Folder Include="CustomValidations\" />
+    <Folder Include="Localizations\" />
+    <Folder Include="Views\Member\" />
+    <Folder Include="wwwroot\UserPictures\" />
+    <Folder Include="TagHelpers\" />
+    <Folder Include="Areas\Admin\Views\Roles\" />
+    <Folder Include="ClaimProvider\" />
+    <Folder Include="Requirements\" />
+    <Folder Include="Views\Order\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Remove="wwwroot\UserPictures\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AspNetCoreIdentityApp.Service\AspNetCoreIdentityApp.Service.csproj">
+      <GlobalPropertiesToRemove></GlobalPropertiesToRemove>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
