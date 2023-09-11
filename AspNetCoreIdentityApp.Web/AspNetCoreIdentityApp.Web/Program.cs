@@ -35,6 +35,7 @@ builder.Services.AddScoped<IClaimsTransformation, UserClaimProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, ExchangeExpireRequirementHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ViolenceRequirementHandler>();
 builder.Services.AddScoped<IMemberService, MemberService>();
+builder.Services.AddScoped<IHomeService, HomeService>();
 
 builder.Services.AddAuthorization(options =>
 {

@@ -15,13 +15,15 @@ public class HomeController : Controller
     private readonly UserManager<AppUser> _userManager;
     private readonly SignInManager<AppUser> _signInManager;
     private readonly IEmailService _emailService;
+    private readonly IHomeService _homeService;
 
-    public HomeController(ILogger<HomeController> logger, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IEmailService emailService)
+    public HomeController(ILogger<HomeController> logger, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IEmailService emailService, IHomeService homeService)
     {
         _logger = logger;
         _userManager = userManager;
         _signInManager = signInManager;
         _emailService = emailService;
+        _homeService = homeService;
     }
 
     public IActionResult Index()
@@ -54,15 +56,15 @@ public class HomeController : Controller
 
         returnUrl ??= Url.Action("Index", "Home"); // returnUrl null ise = 'in sağ tarafını ata
 
-        var hasUser = await _userManager.FindByEmailAsync(model.Email);
+        var (hasUser, validUser) = await _homeService.CheckUserAsync(model.Email);
 
-        if (hasUser == null)
+        if (!hasUser)
         {
             ModelState.AddModelError(string.Empty, "Email veya Şifre yanlış");
             return View();
         }
 
-        var signInresult = await _signInManager.PasswordSignInAsync(hasUser, model.Password, model.RememberMe, true);
+        var (isSuccess, signInresult) = await _homeService.UserPasswordSignInAsync(validUser.UserName, model.Password, model.RememberMe);
 
         if (signInresult.IsLockedOut)
         {
@@ -73,14 +75,13 @@ public class HomeController : Controller
         if (!signInresult.Succeeded)
         {
             ModelState.AddModelErrorList(new List<string>() { "Email veya şifre yanlış",
-        $"Başarısız giriş sayısı :{await _userManager.GetAccessFailedCountAsync(hasUser)}"});
+        $"Başarısız giriş sayısı :{await _homeService.GetUserAccessFailedCountAsync(validUser.UserName)}"});
             return View();
         }
 
-        if (hasUser.BirthDate.HasValue)
+        if (await _homeService.CheckUserBirthDateHasValue(validUser.UserName))
         {
-            await _signInManager.SignInWithClaimsAsync(hasUser, model.RememberMe,
-            new[] { new Claim("birthdate", hasUser.BirthDate.Value.ToString()) });
+            await _homeService.UserSignInWithClaimsAsync(validUser.UserName, model.RememberMe);
         }
         return Redirect(returnUrl!);
     }
@@ -93,28 +94,12 @@ public class HomeController : Controller
         {
             return View();
         }
-        var identityResult = await _userManager.CreateAsync(new()
+
+        var (isSuccess, errors) = await _homeService.CreateUserAsync(request);
+
+        if (!isSuccess)
         {
-            UserName = request.Username,
-            PhoneNumber = request.Phone,
-            Email = request.Email
-        }, request.Password);
-
-        if (!identityResult.Succeeded)
-        {
-            ModelState.AddModelErrorList(identityResult.Errors.Select(x => x.Description).ToList());
-            return View();
-        }
-
-        var exchangeExpireClaim = new Claim("ExchangeExpireDate", DateTime.Now.AddDays(10).ToString());
-
-        var user = await _userManager.FindByNameAsync(request.Username);
-
-        var claimResult = await _userManager.AddClaimAsync(user!, exchangeExpireClaim);
-
-        if (!claimResult.Succeeded)
-        {
-            ModelState.AddModelErrorList(identityResult.Errors.Select(x => x.Description).ToList());
+            ModelState.AddModelErrorList(errors.Select(x => x.Description).ToList());
             return View();
         }
 
@@ -133,15 +118,13 @@ public class HomeController : Controller
     [HttpPost]
     public async Task<IActionResult> ForgetPassword(ForgetPasswordViewModel request)
     {
-        var hasUser = await _userManager.FindByEmailAsync(request.Email);
+        var (passwordResetToken, hasUser) = await _homeService.ForgetUserPassword(request.Email);
 
         if (hasUser == null)
         {
             ModelState.AddModelError(string.Empty, "Bu email adresine sahip kullanıcı bulunamamıştır");
             return View();
         }
-
-        string passwordResetToken = await _userManager.GeneratePasswordResetTokenAsync(hasUser);
 
         var passwordResetLink = Url.Action("ResetPassword", "Home",
             new { userId = hasUser.Id, Token = passwordResetToken }, HttpContext.Request.Scheme);
@@ -174,21 +157,23 @@ public class HomeController : Controller
             throw new Exception("Bir hata meydana geldi");
         }
 
-        var hasUser = await _userManager.FindByIdAsync(userId.ToString()!);
-        if (hasUser == null)
+        //var hasUser = await _userManager.FindByIdAsync(userId.ToString()!);
+        if (!await _homeService.CheckUserByIdAsync(userId.ToString()!))
         {
             ModelState.AddModelError(string.Empty, "Kullanıcı bulunamamıştır.");
             return View();
         }
 
-        var result = await _userManager.ResetPasswordAsync(hasUser, token.ToString()!, request.Password);
-        if (result.Succeeded)
+        //var result = await _userManager.ResetPasswordAsync(hasUser, token.ToString()!, request.Password);
+        var (isSuccess, errors) = await _homeService.ResetUserPasswordAsync(userId.ToString()!, token.ToString()!, request.Password);
+
+        if (isSuccess)
         {
             TempData["SuccessMessage"] = "Şifreniz başarılı bir şekilde yenilenmiştir.";
         }
         else
         {
-            ModelState.AddModelErrorList(result.Errors.Select(x => x.Description).ToList());
+            ModelState.AddModelErrorList(errors!.Select(x => x.Description).ToList());
         }
 
         return View();
